@@ -32,10 +32,9 @@ switch ($action) {
                  FROM {$prefix}assignments a
                  JOIN {$prefix}subjects sub ON a.subject_id = sub.id
                  JOIN {$prefix}classes c ON sub.class_id = c.id
-                 LEFT JOIN {$prefix}teacher_subjects ts ON ts.subject_id = sub.id AND ts.teacher_id = ?
-                 WHERE sub.teacher_id = ? OR ts.teacher_id = ?
+                 WHERE sub.teacher_id = ?
                  ORDER BY a.created_at DESC",
-                [$userId, $userId, $userId]
+                [$userId]
             );
         }
         render_with_layout('assignments/index', ['assignments' => $assignments, 'pageTitle' => 'Tugas']);
@@ -87,10 +86,9 @@ switch ($action) {
             $subjects = $db->fetchAll(
                 "SELECT DISTINCT s.*, c.name as class_name FROM {$prefix}subjects s 
                  JOIN {$prefix}classes c ON s.class_id = c.id 
-                 LEFT JOIN {$prefix}teacher_subjects ts ON ts.subject_id = s.id AND ts.teacher_id = ?
-                 WHERE s.teacher_id = ? OR ts.teacher_id = ?
+                 WHERE s.teacher_id = ?
                  ORDER BY c.grade, c.name, s.name",
-                [$userId, $userId, $userId]
+                [$userId]
             );
         }
         render_with_layout('assignments/create', ['subjects' => $subjects, 'pageTitle' => 'Buat Tugas']);
