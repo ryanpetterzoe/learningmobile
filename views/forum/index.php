@@ -174,6 +174,13 @@
                         </button>
                         <a href="<?= url('forum/post/' . $post['id']) ?>"><i class="fas fa-comment"></i> <?= $post['reply_count'] ?> Komentar</a>
                         <span><i class="fas fa-eye"></i> <?= $post['views'] ?></span>
+                        <?php if ((int)$post['author_id'] === (int)Session::userId() || in_array($role, ['admin','wali_kelas'])): ?>
+                            <a href="<?= url('forum/edit/' . $post['id']) ?>" title="Edit"><i class="fas fa-edit"></i></a>
+                            <form method="POST" action="<?= url('forum/delete/' . $post['id']) ?>" style="display:inline;">
+                                <?= csrf_field() ?>
+                                <button type="submit" title="Hapus" data-confirm="Hapus postingan ini?"><i class="fas fa-trash"></i></button>
+                            </form>
+                        <?php endif; ?>
                     </div>
                 </div>
             <?php endforeach; ?>
