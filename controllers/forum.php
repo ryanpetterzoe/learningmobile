@@ -61,8 +61,7 @@ switch ($action) {
 
         $recentPosts = $db->fetchAll(
             "SELECT fp.*, u.full_name, u.avatar, u.role as author_role, fc.name as category_name,
-             (SELECT c2.name FROM {$prefix}classes c2 WHERE c2.id = u.class_id LIMIT 1) as author_class_name,
-             (SELECT c3.name FROM {$prefix}class_members cm2 JOIN {$prefix}classes c3 ON cm2.class_id = c3.id WHERE cm2.user_id = u.id AND cm2.role = 'student' LIMIT 1) as author_class_fallback,
+             (SELECT c3.name FROM {$prefix}class_members cm2 JOIN {$prefix}classes c3 ON cm2.class_id = c3.id WHERE cm2.user_id = u.id AND cm2.role = 'student' LIMIT 1) as author_class_name,
              (SELECT s.name FROM {$prefix}subjects s WHERE s.id = fp.subject_id LIMIT 1) as subject_name,
              (SELECT COUNT(*) FROM {$prefix}forum_replies WHERE post_id = fp.id) as reply_count,
              (SELECT COUNT(*) FROM {$prefix}forum_likes WHERE post_id = fp.id) as like_count
@@ -114,8 +113,7 @@ switch ($action) {
         if (!$param) Router::redirect('forum');
         $post = $db->fetch(
             "SELECT fp.*, u.full_name, u.avatar, u.role as author_role, u.level, fc.name as category_name,
-             (SELECT c2.name FROM {$prefix}classes c2 WHERE c2.id = u.class_id LIMIT 1) as author_class_name,
-             (SELECT c3.name FROM {$prefix}class_members cm2 JOIN {$prefix}classes c3 ON cm2.class_id = c3.id WHERE cm2.user_id = u.id AND cm2.role = 'student' LIMIT 1) as author_class_fallback,
+             (SELECT c3.name FROM {$prefix}class_members cm2 JOIN {$prefix}classes c3 ON cm2.class_id = c3.id WHERE cm2.user_id = u.id AND cm2.role = 'student' LIMIT 1) as author_class_name,
              (SELECT s.name FROM {$prefix}subjects s WHERE s.id = fp.subject_id LIMIT 1) as subject_name
              FROM {$prefix}forum_posts fp 
              JOIN {$prefix}users u ON fp.author_id = u.id

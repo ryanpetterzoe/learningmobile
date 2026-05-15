@@ -14,24 +14,27 @@ switch ($action) {
     case 'view':
         // Public profile view
         if (!$param) Router::redirect('forum');
-        $profileUser = $db->fetch("SELECT id, full_name, email, avatar, role, bio, level, xp_points, class_id, birth_date, competency_id, created_at FROM {$prefix}users WHERE id = ?", [$param]);
+        $profileUser = $db->fetch("SELECT id, full_name, email, avatar, role, bio, level, xp_points, created_at FROM {$prefix}users WHERE id = ?", [$param]);
         if (!$profileUser) {
             Session::flash('error', 'Pengguna tidak ditemukan.');
             Router::redirect('forum');
         }
 
-        // Get class name
+        // Get class name from class_members
         $profileUser['class_name'] = '';
-        if ($profileUser['class_id']) {
-            $cls = $db->fetch("SELECT name FROM {$prefix}classes WHERE id = ?", [$profileUser['class_id']]);
-            if ($cls) $profileUser['class_name'] = $cls['name'];
-        }
+        $cls = $db->fetch("SELECT c.name FROM {$prefix}class_members cm JOIN {$prefix}classes c ON cm.class_id = c.id WHERE cm.user_id = ? AND cm.role = 'student' LIMIT 1", [$param]);
+        if ($cls) $profileUser['class_name'] = $cls['name'];
 
-        // Get competency name
+        // Get competency name (table may not exist)
         $profileUser['competency_name'] = '';
-        if (!empty($profileUser['competency_id'])) {
-            $comp = $db->fetch("SELECT name FROM {$prefix}competencies WHERE id = ?", [$profileUser['competency_id']]);
-            if ($comp) $profileUser['competency_name'] = $comp['name'];
+        try {
+            $compId = $db->fetch("SELECT competency_id FROM {$prefix}users WHERE id = ?", [$param]);
+            if ($compId && !empty($compId['competency_id'])) {
+                $comp = $db->fetch("SELECT name FROM {$prefix}competencies WHERE id = ?", [$compId['competency_id']]);
+                if ($comp) $profileUser['competency_name'] = $comp['name'];
+            }
+        } catch (Exception $e) {
+            // Columns or table don't exist yet
         }
 
         // Stats
@@ -105,8 +108,13 @@ switch ($action) {
             Router::redirect('profile');
         }
 
-        // Get competencies for dropdown
-        $competencies = $db->fetchAll("SELECT * FROM {$prefix}competencies ORDER BY name");
+        // Get competencies for dropdown (table may not exist on older installs)
+        $competencies = [];
+        try {
+            $competencies = $db->fetchAll("SELECT * FROM {$prefix}competencies ORDER BY name");
+        } catch (Exception $e) {
+            // Table doesn't exist yet, skip
+        }
 
         // Get user badges and stats
         $badges = Gamification::getUserBadges($userId);

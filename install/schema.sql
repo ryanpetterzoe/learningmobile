@@ -15,6 +15,10 @@ CREATE TABLE IF NOT EXISTS `{PREFIX}users` (
     `bio` TEXT DEFAULT NULL,
     `nis` VARCHAR(20) DEFAULT NULL,
     `nip` VARCHAR(30) DEFAULT NULL,
+    `class_id` INT DEFAULT NULL,
+    `competency_id` INT DEFAULT NULL,
+    `birth_date` DATE DEFAULT NULL,
+    `theme` VARCHAR(10) DEFAULT 'light',
     `status` ENUM('pending','active','suspended') DEFAULT 'pending',
     `xp_points` INT DEFAULT 0,
     `level` INT DEFAULT 1,
@@ -209,12 +213,15 @@ CREATE TABLE IF NOT EXISTS `{PREFIX}forum_posts` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `category_id` INT NOT NULL,
     `author_id` INT NOT NULL,
+    `subject_id` INT DEFAULT NULL,
     `title` VARCHAR(255) NOT NULL,
     `content` LONGTEXT NOT NULL,
     `attachment` VARCHAR(500) DEFAULT NULL,
     `views` INT DEFAULT 0,
     `is_pinned` TINYINT(1) DEFAULT 0,
     `is_locked` TINYINT(1) DEFAULT 0,
+    `edited_at` DATETIME DEFAULT NULL,
+    `edited_by` INT DEFAULT NULL,
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (`category_id`) REFERENCES `{PREFIX}forum_categories`(`id`) ON DELETE CASCADE,
@@ -226,8 +233,10 @@ CREATE TABLE IF NOT EXISTS `{PREFIX}forum_replies` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `post_id` INT NOT NULL,
     `author_id` INT NOT NULL,
+    `parent_reply_id` INT DEFAULT NULL,
     `content` LONGTEXT NOT NULL,
     `attachment` VARCHAR(500) DEFAULT NULL,
+    `edited_at` DATETIME DEFAULT NULL,
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`post_id`) REFERENCES `{PREFIX}forum_posts`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`author_id`) REFERENCES `{PREFIX}users`(`id`) ON DELETE CASCADE
@@ -270,6 +279,15 @@ CREATE TABLE IF NOT EXISTS `{PREFIX}grades` (
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`student_id`) REFERENCES `{PREFIX}users`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`subject_id`) REFERENCES `{PREFIX}subjects`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Competencies (SMK)
+CREATE TABLE IF NOT EXISTS `{PREFIX}competencies` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(200) NOT NULL,
+    `code` VARCHAR(50) DEFAULT NULL,
+    `description` TEXT DEFAULT NULL,
+    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Badges
