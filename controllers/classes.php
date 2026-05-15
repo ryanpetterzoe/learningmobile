@@ -91,8 +91,22 @@ switch ($action) {
 
     case 'add-member':
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && $param) {
-            Auth::requireRole(['admin', 'wali_kelas']);
+            Auth::requireRole(['admin', 'guru', 'wali_kelas']);
+            // Verify guru has access to this class (teaches a subject in it or is homeroom teacher)
+            if ($role === 'guru') {
+                $hasAccess = $db->fetch(
+                    "SELECT id FROM {$prefix}subjects WHERE class_id = ? AND teacher_id = ? LIMIT 1",
+                    [$param, $userId]
+                );
+                $isHomeroom = $db->fetch("SELECT id FROM {$prefix}classes WHERE id = ? AND homeroom_teacher_id = ?", [$param, $userId]);
+                if (!$hasAccess && !$isHomeroom) {
+                    Session::flash('error', 'Anda tidak memiliki akses ke kelas ini.');
+                    Router::redirect('classes');
+                }
+            }
+
             $studentIds = $_POST['student_ids'] ?? [];
+            $addedCount = 0;
             foreach ($studentIds as $sid) {
                 $existing = $db->fetch("SELECT id FROM {$prefix}class_members WHERE class_id = ? AND user_id = ?", [$param, $sid]);
                 if (!$existing) {
@@ -102,16 +116,30 @@ switch ($action) {
                         'role' => 'student',
                         'joined_at' => date('Y-m-d H:i:s')
                     ]);
+                    $addedCount++;
                 }
             }
-            Session::flash('success', 'Siswa berhasil ditambahkan ke kelas!');
+            Session::flash('success', $addedCount . ' siswa berhasil ditambahkan ke kelas!');
         }
         Router::redirect('classes/view/' . $param);
         break;
 
     case 'remove-member':
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && $param) {
-            Auth::requireRole(['admin', 'wali_kelas']);
+            Auth::requireRole(['admin', 'guru', 'wali_kelas']);
+            // Verify guru has access to this class
+            if ($role === 'guru') {
+                $hasAccess = $db->fetch(
+                    "SELECT id FROM {$prefix}subjects WHERE class_id = ? AND teacher_id = ? LIMIT 1",
+                    [$param, $userId]
+                );
+                $isHomeroom = $db->fetch("SELECT id FROM {$prefix}classes WHERE id = ? AND homeroom_teacher_id = ?", [$param, $userId]);
+                if (!$hasAccess && !$isHomeroom) {
+                    Session::flash('error', 'Anda tidak memiliki akses ke kelas ini.');
+                    Router::redirect('classes');
+                }
+            }
+
             $memberId = $_POST['user_id'] ?? 0;
             $db->delete('class_members', 'class_id = ? AND user_id = ?', [$param, $memberId]);
             Session::flash('success', 'Anggota dihapus dari kelas.');
