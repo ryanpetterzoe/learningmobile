@@ -96,7 +96,7 @@
     <!-- Question Navigation -->
     <div class="question-nav" id="qNav">
         <?php foreach ($questions as $idx => $q): ?>
-            <button class="q-nav-btn" data-q="<?= $idx ?>" onclick="scrollToQ(<?= $idx ?>)"><?= $idx + 1 ?></button>
+            <button type="button" class="q-nav-btn" data-q="<?= $idx ?>" onclick="scrollToQ(<?= $idx ?>)"><?= $idx + 1 ?></button>
         <?php endforeach; ?>
     </div>
 
@@ -248,11 +248,14 @@
         document.addEventListener('contextmenu', e => e.preventDefault());
 
         // === Prevent accidental leave (but allow form submit) ===
-        window.addEventListener('beforeunload', function(e) {
-            if (isSubmitting) return; // Allow normal form submission
-            e.preventDefault();
-            e.returnValue = 'Anda sedang mengerjakan ujian. Jawaban yang belum disimpan bisa hilang.';
-        });
+        // Delay registration to prevent immediate trigger on page load
+        setTimeout(function() {
+            window.addEventListener('beforeunload', function(e) {
+                if (isSubmitting) return; // Allow normal form submission
+                e.preventDefault();
+                e.returnValue = 'Anda sedang mengerjakan ujian. Jawaban yang belum disimpan bisa hilang.';
+            });
+        }, 2000); // Wait 2 seconds after page loads
     </script>
 </body>
 </html>

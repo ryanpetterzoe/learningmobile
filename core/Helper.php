@@ -148,7 +148,7 @@ function render($view, $data = []) {
     extract($data);
     $viewFile = BASE_PATH . '/views/' . $view . '.php';
     if (file_exists($viewFile)) {
-        require_once $viewFile;
+        require $viewFile;
     }
 }
 
