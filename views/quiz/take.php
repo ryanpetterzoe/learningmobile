@@ -131,14 +131,17 @@
             <span style="font-size: 13px; color: #64748b;">
                 <span id="answeredCount">0</span>/<?= count($questions) ?> soal dijawab
             </span>
-            <button type="submit" class="btn-submit" onclick="return confirm('Yakin ingin mengumpulkan jawaban? Anda tidak bisa mengubahnya lagi.')">
+            <button type="submit" class="btn-submit">
                 <i class="fas fa-paper-plane"></i> Kumpulkan Jawaban
             </button>
         </div>
     </form>
 
     <script>
-        // Timer
+        // === State ===
+        let isSubmitting = false;
+
+        // === Timer ===
         const duration = <?= $quiz['duration_minutes'] ?> * 60;
         const startTime = new Date('<?= $attempt['started_at'] ?>').getTime();
         const endTime = startTime + (duration * 1000);
@@ -153,16 +156,18 @@
             
             if (remaining <= 300) timerEl.classList.add('urgent');
             if (remaining <= 0) {
+                isSubmitting = true;
                 document.getElementById('quizForm').submit();
             }
         }
         updateTimer();
         setInterval(updateTimer, 1000);
 
-        // Mark answered
+        // === Mark answered ===
         function markAnswered(idx) {
             document.querySelectorAll('.q-nav-btn')[idx].classList.add('answered');
             updateCount();
+            saveToLocal();
         }
 
         function updateCount() {
@@ -174,7 +179,62 @@
             document.getElementById('question-' + idx).scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
-        // Anti-cheat: detect tab/window switch
+        // === Auto-save to localStorage ===
+        const storageKey = 'quiz_<?= $attempt['id'] ?>';
+
+        function saveToLocal() {
+            const formData = new FormData(document.getElementById('quizForm'));
+            const answers = {};
+            for (const [key, value] of formData.entries()) {
+                if (key.startsWith('answers[')) {
+                    answers[key] = value;
+                }
+            }
+            localStorage.setItem(storageKey, JSON.stringify(answers));
+        }
+
+        function loadFromLocal() {
+            const saved = localStorage.getItem(storageKey);
+            if (!saved) return;
+            try {
+                const answers = JSON.parse(saved);
+                for (const [key, value] of Object.entries(answers)) {
+                    const input = document.querySelector(`[name="${key}"][value="${value}"]`);
+                    if (input) { input.checked = true; }
+                    const textarea = document.querySelector(`textarea[name="${key}"]`);
+                    if (textarea) { textarea.value = value; }
+                }
+                // Update nav buttons
+                document.querySelectorAll('.question-card').forEach((card, idx) => {
+                    const hasAnswer = card.querySelector('input:checked') || 
+                                     (card.querySelector('textarea') && card.querySelector('textarea').value.trim());
+                    if (hasAnswer) {
+                        document.querySelectorAll('.q-nav-btn')[idx].classList.add('answered');
+                    }
+                });
+                updateCount();
+            } catch(e) {}
+        }
+        loadFromLocal();
+
+        // === Form submit handler ===
+        document.getElementById('quizForm').addEventListener('submit', function(e) {
+            if (!isSubmitting) {
+                const answered = document.querySelectorAll('.q-nav-btn.answered').length;
+                const total = <?= count($questions) ?>;
+                const msg = answered < total 
+                    ? `Anda baru menjawab ${answered} dari ${total} soal.\nSoal yang tidak dijawab akan dianggap salah.\n\nYakin ingin mengumpulkan jawaban?`
+                    : 'Yakin ingin mengumpulkan jawaban? Anda tidak bisa mengubahnya lagi.';
+                if (!confirm(msg)) {
+                    e.preventDefault();
+                    return false;
+                }
+            }
+            isSubmitting = true;
+            localStorage.removeItem(storageKey);
+        });
+
+        // === Anti-cheat: detect tab/window switch ===
         document.addEventListener('visibilitychange', function() {
             if (document.hidden) {
                 document.getElementById('antiCheat').classList.add('show');
@@ -184,13 +244,14 @@
             this.classList.remove('show');
         });
 
-        // Anti-cheat: prevent right-click
+        // === Anti-cheat: prevent right-click ===
         document.addEventListener('contextmenu', e => e.preventDefault());
 
-        // Anti-cheat: prevent refresh (beforeunload)
+        // === Prevent accidental leave (but allow form submit) ===
         window.addEventListener('beforeunload', function(e) {
+            if (isSubmitting) return; // Allow normal form submission
             e.preventDefault();
-            e.returnValue = 'Anda sedang mengerjakan ujian. Yakin ingin meninggalkan halaman?';
+            e.returnValue = 'Anda sedang mengerjakan ujian. Jawaban yang belum disimpan bisa hilang.';
         });
     </script>
 </body>

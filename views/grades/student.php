@@ -20,7 +20,12 @@
                         <?php foreach ($subGrades as $g): ?>
                             <tr>
                                 <td><span class="badge badge-primary"><?= ucfirst($g['type']) ?></span></td>
-                                <td><?= e($g['title'] ?? '-') ?></td>
+                                <td>
+                                    <?= e($g['title'] ?? '-') ?>
+                                    <?php if ((float)($g['score'] ?? 0) == 0): ?>
+                                        <small style="display:block;color:var(--danger);font-size:10px;">Tidak mengumpulkan</small>
+                                    <?php endif; ?>
+                                </td>
                                 <td><strong style="color:<?= $g['score'] >= 75 ? 'var(--success)' : ($g['score'] >= 60 ? 'var(--warning)' : 'var(--danger)') ?>;"><?= $g['score'] ?></strong></td>
                                 <td style="font-size:12px;color:var(--text-muted);"><?= format_date($g['created_at']) ?></td>
                             </tr>
