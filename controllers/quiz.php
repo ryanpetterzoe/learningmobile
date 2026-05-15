@@ -339,6 +339,91 @@ switch ($action) {
         ]);
         break;
 
+    case 'edit':
+        Auth::requireRole(['admin', 'guru', 'wali_kelas']);
+        if (!$param) Router::redirect('quiz');
+        $quiz = $db->fetch("SELECT q.*, sub.teacher_id FROM {$prefix}quizzes q JOIN {$prefix}subjects sub ON q.subject_id = sub.id WHERE q.id = ?", [$param]);
+        if (!$quiz) Router::redirect('quiz');
+        if ($role !== 'admin' && (int)$quiz['teacher_id'] !== (int)$userId) Router::redirect('quiz');
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $newStatus = $_POST['status'] ?? $quiz['status'];
+            $db->update('quizzes', [
+                'title' => trim($_POST['title']),
+                'description' => trim($_POST['description'] ?? ''),
+                'duration_minutes' => (int)($_POST['duration'] ?? $quiz['duration_minutes']),
+                'shuffle_questions' => isset($_POST['shuffle_questions']) ? 1 : 0,
+                'shuffle_options' => isset($_POST['shuffle_options']) ? 1 : 0,
+                'passing_score' => (int)($_POST['passing_score'] ?? $quiz['passing_score']),
+                'status' => $newStatus,
+                'start_time' => !empty($_POST['start_time']) ? $_POST['start_time'] : null,
+                'end_time' => !empty($_POST['end_time']) ? $_POST['end_time'] : null,
+            ], 'id = ?', [$param]);
+
+            // If changed to closed, auto assign 0 to students who didn't attempt
+            if ($newStatus === 'closed') {
+                quizAutoAssignZero($db, $prefix, $param);
+            }
+
+            // Notify students if changed to active
+            if ($newStatus === 'active' && $quiz['status'] !== 'active') {
+                $subject = $db->fetch("SELECT s.name, s.class_id FROM {$prefix}subjects s WHERE s.id = ?", [$quiz['subject_id']]);
+                if ($subject) {
+                    $students = $db->fetchAll("SELECT user_id FROM {$prefix}class_members WHERE class_id = ? AND role = 'student'", [$subject['class_id']]);
+                    foreach ($students as $student) {
+                        $db->insert('notifications', [
+                            'user_id' => $student['user_id'],
+                            'title' => 'Quiz Aktif',
+                            'message' => 'Quiz "' . truncate(trim($_POST['title']), 40) . '" sekarang aktif pada mapel ' . $subject['name'],
+                            'type' => 'info',
+                            'link' => url('quiz'),
+                            'created_at' => date('Y-m-d H:i:s')
+                        ]);
+                    }
+                }
+            }
+
+            Session::flash('success', 'Quiz berhasil diperbarui!');
+            Router::redirect('quiz');
+        }
+
+        if ($role === 'admin') {
+            $subjects = $db->fetchAll("SELECT s.*, c.name as class_name FROM {$prefix}subjects s JOIN {$prefix}classes c ON s.class_id = c.id ORDER BY c.grade, s.name");
+        } else {
+            $subjects = $db->fetchAll("SELECT DISTINCT s.*, c.name as class_name FROM {$prefix}subjects s JOIN {$prefix}classes c ON s.class_id = c.id WHERE s.teacher_id = ? ORDER BY c.grade, s.name", [$userId]);
+        }
+        render_with_layout('quiz/edit', compact('quiz', 'subjects') + ['pageTitle' => 'Edit Quiz']);
+        break;
+
+    case 'delete':
+        Auth::requireRole(['admin', 'guru', 'wali_kelas']);
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && $param) {
+            $quiz = $db->fetch("SELECT q.*, sub.teacher_id FROM {$prefix}quizzes q JOIN {$prefix}subjects sub ON q.subject_id = sub.id WHERE q.id = ?", [$param]);
+            if (!$quiz) Router::redirect('quiz');
+            if ($role !== 'admin' && (int)$quiz['teacher_id'] !== (int)$userId) Router::redirect('quiz');
+
+            $db->delete('quiz_questions', 'quiz_id = ?', [$param]);
+            $db->delete('quiz_attempts', 'quiz_id = ?', [$param]);
+            $db->delete('quizzes', 'id = ?', [$param]);
+            Session::flash('success', 'Quiz berhasil dihapus.');
+        }
+        Router::redirect('quiz');
+        break;
+
+    case 'close':
+        Auth::requireRole(['admin', 'guru', 'wali_kelas']);
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && $param) {
+            $quiz = $db->fetch("SELECT q.*, sub.teacher_id FROM {$prefix}quizzes q JOIN {$prefix}subjects sub ON q.subject_id = sub.id WHERE q.id = ?", [$param]);
+            if (!$quiz) Router::redirect('quiz');
+            if ($role !== 'admin' && (int)$quiz['teacher_id'] !== (int)$userId) Router::redirect('quiz');
+
+            $db->update('quizzes', ['status' => 'closed'], 'id = ?', [$param]);
+            quizAutoAssignZero($db, $prefix, $param);
+            Session::flash('success', 'Quiz ditutup. Siswa yang tidak mengerjakan mendapat nilai 0.');
+        }
+        Router::redirect('quiz');
+        break;
+
     case 'delete-question':
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && $param) {
             $q = $db->fetch("SELECT quiz_id FROM {$prefix}quiz_questions WHERE id = ?", [$param]);
@@ -351,4 +436,42 @@ switch ($action) {
     default:
         Router::redirect('quiz');
         break;
+}
+
+/**
+ * Auto assign score 0 to students who didn't attempt a quiz
+ */
+function quizAutoAssignZero($db, $prefix, $quizId) {
+    $quiz = $db->fetch("SELECT q.*, sub.class_id FROM {$prefix}quizzes q JOIN {$prefix}subjects sub ON q.subject_id = sub.id WHERE q.id = ?", [$quizId]);
+    if (!$quiz) return;
+
+    $students = $db->fetchAll("SELECT user_id FROM {$prefix}class_members WHERE class_id = ? AND role = 'student'", [$quiz['class_id']]);
+    
+    foreach ($students as $student) {
+        $sid = $student['user_id'];
+        $attempted = $db->fetch("SELECT id FROM {$prefix}quiz_attempts WHERE quiz_id = ? AND student_id = ? AND status = 'completed'", [$quizId, $sid]);
+        if (!$attempted) {
+            // Insert attempt with score 0
+            $db->insert('quiz_attempts', [
+                'quiz_id' => $quizId,
+                'student_id' => $sid,
+                'score' => 0,
+                'started_at' => date('Y-m-d H:i:s'),
+                'finished_at' => date('Y-m-d H:i:s'),
+                'status' => 'completed'
+            ]);
+            // Insert grade 0
+            $existingGrade = $db->fetch("SELECT id FROM {$prefix}grades WHERE student_id = ? AND subject_id = ? AND type = 'quiz' AND title = ?", [$sid, $quiz['subject_id'], $quiz['title']]);
+            if (!$existingGrade) {
+                $db->insert('grades', [
+                    'student_id' => $sid,
+                    'subject_id' => $quiz['subject_id'],
+                    'type' => 'quiz',
+                    'title' => $quiz['title'],
+                    'score' => 0,
+                    'created_at' => date('Y-m-d H:i:s')
+                ]);
+            }
+        }
+    }
 }
