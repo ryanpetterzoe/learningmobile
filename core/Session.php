@@ -56,9 +56,16 @@ class Session {
     public static function user() {
         if (!self::isLoggedIn()) return null;
         $db = Database::getInstance();
-        return $db->fetch(
+        $user = $db->fetch(
             "SELECT * FROM {$db->getPrefix()}users WHERE id = ?",
             [self::userId()]
         );
+        // If user not found (e.g., after reinstall), destroy session
+        if (!$user) {
+            self::destroy();
+            session_start();
+            return null;
+        }
+        return $user;
     }
 }
