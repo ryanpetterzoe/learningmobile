@@ -143,12 +143,19 @@
 
         // === Timer ===
         const duration = <?= $quiz['duration_minutes'] ?> * 60;
-        const startTime = new Date('<?= $attempt['started_at'] ?>').getTime();
+        // Use PHP timestamp (milliseconds) to avoid timezone/parsing issues
+        const startTime = <?= strtotime($attempt['started_at']) ?> * 1000;
         const endTime = startTime + (duration * 1000);
+        // Fallback: if endTime already passed (clock issue), use duration from now
+        const serverNow = <?= time() ?> * 1000;
+        const elapsed = serverNow - startTime;
+        const remainingOnLoad = Math.max(0, duration - Math.floor(elapsed / 1000));
+        // Use client-relative countdown if server times seem off
+        const countdownEnd = Date.now() + (remainingOnLoad * 1000);
 
         function updateTimer() {
             const now = Date.now();
-            const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
+            const remaining = Math.max(0, Math.floor((countdownEnd - now) / 1000));
             const mins = Math.floor(remaining / 60);
             const secs = remaining % 60;
             const timerEl = document.getElementById('timer');
