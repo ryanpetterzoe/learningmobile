@@ -44,10 +44,9 @@ switch ($action) {
                  FROM {$prefix}quizzes q
                  JOIN {$prefix}subjects sub ON q.subject_id = sub.id
                  JOIN {$prefix}classes c ON sub.class_id = c.id
-                 LEFT JOIN {$prefix}teacher_subjects ts ON ts.subject_id = sub.id AND ts.teacher_id = ?
-                 WHERE sub.teacher_id = ? OR ts.teacher_id = ?
+                 WHERE sub.teacher_id = ?
                  ORDER BY q.created_at DESC",
-                [$userId, $userId, $userId]
+                [$userId]
             );
         }
         render_with_layout('quiz/index', compact('quizzes') + ['pageTitle' => 'Quiz & CBT']);
@@ -95,17 +94,16 @@ switch ($action) {
             Session::flash('success', 'Quiz berhasil dibuat! Tambahkan soal.');
             Router::redirect('quiz/questions/' . $quizId);
         }
-        // Get subjects assigned to this teacher via teacher_subjects table OR subjects.teacher_id
+        // Get subjects assigned to this teacher
         if ($role === 'admin') {
             $subjects = $db->fetchAll("SELECT s.*, c.name as class_name FROM {$prefix}subjects s JOIN {$prefix}classes c ON s.class_id = c.id ORDER BY c.grade, s.name");
         } else {
             $subjects = $db->fetchAll(
                 "SELECT DISTINCT s.*, c.name as class_name FROM {$prefix}subjects s 
                  JOIN {$prefix}classes c ON s.class_id = c.id 
-                 LEFT JOIN {$prefix}teacher_subjects ts ON ts.subject_id = s.id AND ts.teacher_id = ?
-                 WHERE s.teacher_id = ? OR ts.teacher_id = ?
+                 WHERE s.teacher_id = ?
                  ORDER BY c.grade, s.name",
-                [$userId, $userId, $userId]
+                [$userId]
             );
         }
         render_with_layout('quiz/create', compact('subjects') + ['pageTitle' => 'Buat Quiz']);
