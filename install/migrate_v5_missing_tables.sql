@@ -37,3 +37,7 @@ CREATE TABLE IF NOT EXISTS `{PREFIX}teacher_subjects` (
     FOREIGN KEY (`subject_id`) REFERENCES `{PREFIX}subjects`(`id`) ON DELETE CASCADE,
     UNIQUE KEY `unique_teacher_subject` (`teacher_id`, `subject_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- Add status column to assignments (open/closed)
+ALTER TABLE `{PREFIX}assignments` ADD COLUMN IF NOT EXISTS `status` ENUM('open','closed') DEFAULT 'open';

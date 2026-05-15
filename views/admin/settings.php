@@ -78,6 +78,19 @@
                 </select>
             </div>
 
+            <div class="form-group">
+                <label>Zona Waktu (Timezone)</label>
+                <select name="timezone" class="form-control">
+                    <?php 
+                    $tzList = ['Asia/Jakarta' => 'WIB (Jakarta)', 'Asia/Makassar' => 'WITA (Makassar)', 'Asia/Jayapura' => 'WIT (Jayapura)', 'Asia/Pontianak' => 'WIB (Pontianak)', 'UTC' => 'UTC'];
+                    $currentTz = $settings['timezone'] ?? 'Asia/Jakarta';
+                    foreach ($tzList as $tzVal => $tzLabel): ?>
+                        <option value="<?= $tzVal ?>" <?= $currentTz === $tzVal ? 'selected' : '' ?>><?= $tzLabel ?> — <?= $tzVal ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <small style="color:var(--text-muted);font-size:11px;">Digunakan untuk deadline tugas, jadwal, dan waktu quiz</small>
+            </div>
+
             <div style="margin-top: 30px; padding: 16px; background: var(--bg-hover); border-radius: var(--radius-md);">
                 <h4 style="font-size: 13px; margin-bottom: 8px; color: var(--text-secondary);">Info Sistem</h4>
                 <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">

@@ -99,6 +99,7 @@ CREATE TABLE IF NOT EXISTS `{PREFIX}assignments` (
     `allow_revision` TINYINT(1) DEFAULT 1,
     `max_file_size` INT DEFAULT 10485760,
     `allowed_types` VARCHAR(255) DEFAULT 'pdf,doc,docx,jpg,jpeg,png',
+    `status` ENUM('open','closed') DEFAULT 'open',
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`subject_id`) REFERENCES `{PREFIX}subjects`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
