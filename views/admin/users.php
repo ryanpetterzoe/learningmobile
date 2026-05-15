@@ -111,6 +111,7 @@
                                 <?php endif; ?>
 
                                 <?php if ($u['id'] != Session::userId()): ?>
+                                    <button type="button" class="btn btn-sm btn-secondary" title="Reset Password" onclick="openResetModal(<?= $u['id'] ?>, '<?= e($u['full_name']) ?>')"><i class="fas fa-key"></i></button>
                                     <form method="POST" action="<?= url('admin/user-delete/' . $u['id']) ?>" style="display:inline;">
                                         <?= csrf_field() ?>
                                         <button type="submit" class="btn btn-sm btn-danger" title="Hapus" data-confirm="Yakin hapus pengguna ini? Data tidak dapat dikembalikan."><i class="fas fa-trash"></i></button>
@@ -240,3 +241,54 @@
         </form>
     </div>
 </div>
+
+<!-- Reset Password Modal -->
+<div class="modal-overlay" id="resetPasswordModal">
+    <div class="modal" style="max-width: 420px;">
+        <div class="modal-header">
+            <h3><i class="fas fa-key"></i> Reset Password</h3>
+            <button class="modal-close" onclick="closeModal('resetPasswordModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <form method="POST" id="resetPasswordForm" action="">
+            <?= csrf_field() ?>
+            <div class="modal-body">
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
+                    Reset password untuk: <strong id="resetUserName"></strong>
+                </p>
+                <div class="form-group">
+                    <label>Password Baru <span style="color:var(--danger);">*</span></label>
+                    <input type="password" name="new_password" class="form-control" placeholder="Minimal 6 karakter" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label>Konfirmasi Password <span style="color:var(--danger);">*</span></label>
+                    <input type="password" id="confirmResetPass" class="form-control" placeholder="Ulangi password baru" required minlength="6">
+                </div>
+                <div class="alert alert-warning" style="margin-bottom: 0;">
+                    <i class="fas fa-exclamation-triangle"></i> Password lama pengguna akan diganti. Pastikan Anda menginformasikan password baru ke pengguna.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('resetPasswordModal')">Batal</button>
+                <button type="submit" class="btn btn-warning"><i class="fas fa-key"></i> Reset Password</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openResetModal(userId, userName) {
+    document.getElementById('resetUserName').textContent = userName;
+    document.getElementById('resetPasswordForm').action = '<?= url('admin/user-reset-password/') ?>' + userId;
+    openModal('resetPasswordModal');
+}
+
+// Validate confirm password
+document.getElementById('resetPasswordForm').addEventListener('submit', function(e) {
+    var pass = this.querySelector('input[name="new_password"]').value;
+    var confirm = document.getElementById('confirmResetPass').value;
+    if (pass !== confirm) {
+        e.preventDefault();
+        alert('Konfirmasi password tidak cocok!');
+    }
+});
+</script>
