@@ -25,3 +25,15 @@ ALTER TABLE `{PREFIX}forum_posts` ADD COLUMN IF NOT EXISTS `edited_by` INT DEFAU
 -- Add parent_reply_id and edited_at to forum_replies (for nested replies)
 ALTER TABLE `{PREFIX}forum_replies` ADD COLUMN IF NOT EXISTS `parent_reply_id` INT DEFAULT NULL;
 ALTER TABLE `{PREFIX}forum_replies` ADD COLUMN IF NOT EXISTS `edited_at` DATETIME DEFAULT NULL;
+
+
+-- Teacher-Subject assignments (guru bisa mengajar banyak mapel)
+CREATE TABLE IF NOT EXISTS `{PREFIX}teacher_subjects` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `teacher_id` INT NOT NULL,
+    `subject_id` INT NOT NULL,
+    `assigned_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`teacher_id`) REFERENCES `{PREFIX}users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`subject_id`) REFERENCES `{PREFIX}subjects`(`id`) ON DELETE CASCADE,
+    UNIQUE KEY `unique_teacher_subject` (`teacher_id`, `subject_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

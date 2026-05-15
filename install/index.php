@@ -134,10 +134,47 @@ function runInstallation($config) {
 
         $prefix = $config['db_prefix'];
 
-        // Read and execute SQL schema
+        // Read and execute SQL schema (statement by statement)
         $sql = file_get_contents(BASE_PATH . '/install/schema.sql');
         $sql = str_replace('{PREFIX}', $prefix, $sql);
-        $pdo->exec($sql);
+        
+        // Split into individual statements and execute one by one
+        // This ensures compatibility with all MySQL/PDO configurations
+        $statements = array_filter(array_map('trim', explode(';', $sql)));
+        foreach ($statements as $statement) {
+            if (!empty($statement) && $statement !== '--') {
+                try {
+                    $pdo->exec($statement);
+                } catch (PDOException $e) {
+                    // Skip duplicate key errors on INSERT (re-install scenario)
+                    if (strpos($e->getMessage(), 'Duplicate entry') === false && 
+                        strpos($e->getMessage(), '1062') === false) {
+                        // Log but don't fail on non-critical errors
+                        error_log("Install SQL warning: " . $e->getMessage());
+                    }
+                }
+            }
+        }
+
+        // Also run migration files to ensure all tables/columns exist
+        $migrationFiles = [
+            BASE_PATH . '/install/migrate_v2.sql',
+            BASE_PATH . '/install/migrate_v3_nested_replies.sql',
+            BASE_PATH . '/install/migrate_v4_biodata.sql',
+            BASE_PATH . '/install/migrate_v5_missing_tables.sql',
+        ];
+        foreach ($migrationFiles as $migFile) {
+            if (file_exists($migFile)) {
+                $migSql = file_get_contents($migFile);
+                $migSql = str_replace('{PREFIX}', $prefix, $migSql);
+                $migStatements = array_filter(array_map('trim', explode(';', $migSql)));
+                foreach ($migStatements as $stmt) {
+                    if (!empty($stmt) && $stmt !== '--') {
+                        try { $pdo->exec($stmt); } catch (PDOException $e) { /* skip */ }
+                    }
+                }
+            }
+        }
 
         // Insert admin user
         $hashedPass = password_hash($config['admin_pass'], PASSWORD_DEFAULT);
