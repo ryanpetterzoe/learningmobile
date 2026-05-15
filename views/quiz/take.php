@@ -96,7 +96,7 @@
     <!-- Question Navigation -->
     <div class="question-nav" id="qNav">
         <?php foreach ($questions as $idx => $q): ?>
-            <button class="q-nav-btn" data-q="<?= $idx ?>" onclick="scrollToQ(<?= $idx ?>)"><?= $idx + 1 ?></button>
+            <button type="button" class="q-nav-btn" data-q="<?= $idx ?>" onclick="scrollToQ(<?= $idx ?>)"><?= $idx + 1 ?></button>
         <?php endforeach; ?>
     </div>
 
@@ -143,12 +143,19 @@
 
         // === Timer ===
         const duration = <?= $quiz['duration_minutes'] ?> * 60;
-        const startTime = new Date('<?= $attempt['started_at'] ?>').getTime();
+        // Use PHP timestamp (milliseconds) to avoid timezone/parsing issues
+        const startTime = <?= strtotime($attempt['started_at']) ?> * 1000;
         const endTime = startTime + (duration * 1000);
+        // Fallback: if endTime already passed (clock issue), use duration from now
+        const serverNow = <?= time() ?> * 1000;
+        const elapsed = serverNow - startTime;
+        const remainingOnLoad = Math.max(0, duration - Math.floor(elapsed / 1000));
+        // Use client-relative countdown if server times seem off
+        const countdownEnd = Date.now() + (remainingOnLoad * 1000);
 
         function updateTimer() {
             const now = Date.now();
-            const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
+            const remaining = Math.max(0, Math.floor((countdownEnd - now) / 1000));
             const mins = Math.floor(remaining / 60);
             const secs = remaining % 60;
             const timerEl = document.getElementById('timer');
@@ -248,11 +255,14 @@
         document.addEventListener('contextmenu', e => e.preventDefault());
 
         // === Prevent accidental leave (but allow form submit) ===
-        window.addEventListener('beforeunload', function(e) {
-            if (isSubmitting) return; // Allow normal form submission
-            e.preventDefault();
-            e.returnValue = 'Anda sedang mengerjakan ujian. Jawaban yang belum disimpan bisa hilang.';
-        });
+        // Delay registration to prevent immediate trigger on page load
+        setTimeout(function() {
+            window.addEventListener('beforeunload', function(e) {
+                if (isSubmitting) return; // Allow normal form submission
+                e.preventDefault();
+                e.returnValue = 'Anda sedang mengerjakan ujian. Jawaban yang belum disimpan bisa hilang.';
+            });
+        }, 2000); // Wait 2 seconds after page loads
     </script>
 </body>
 </html>
