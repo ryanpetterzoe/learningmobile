@@ -120,7 +120,8 @@ function upload_file($file, $directory, $allowedTypes = null) {
     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
     
     if ($allowedTypes && !in_array($ext, $allowedTypes)) return false;
-    if ($file['size'] > MAX_UPLOAD_SIZE) return false;
+    $maxSize = defined('MAX_UPLOAD_SIZE') ? MAX_UPLOAD_SIZE : 50 * 1024 * 1024;
+    if ($file['size'] > $maxSize) return false;
 
     $filename = uniqid() . '_' . time() . '.' . $ext;
     $filepath = $uploadDir . $filename;

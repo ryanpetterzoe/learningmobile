@@ -96,6 +96,14 @@
                 </button>
             </form>
             <span class="post-action-btn"><i class="fas fa-comment"></i> <?= $totalReplyCount ?> Komentar</span>
+            
+            <?php if ((int)$post['author_id'] === (int)$userId || in_array($userRole, ['admin','wali_kelas'])): ?>
+                <a href="<?= url('forum/edit/' . $post['id']) ?>" class="post-action-btn" style="color:var(--primary);"><i class="fas fa-edit"></i> Edit</a>
+                <form method="POST" action="<?= url('forum/delete/' . $post['id']) ?>" style="display:inline;">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="post-action-btn" style="color:var(--danger);" data-confirm="Yakin hapus postingan ini?"><i class="fas fa-trash"></i> Hapus</button>
+                </form>
+            <?php endif; ?>
         </div>
     </div>
 </div>
