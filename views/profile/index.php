@@ -9,25 +9,25 @@
     <div class="profile-header-bg"></div>
     <div class="profile-main">
         <div class="profile-avatar-wrapper">
-            <?php if ($user['avatar']): ?>
+            <?php if (!empty($user['avatar'])): ?>
                 <img src="<?= upload_url($user['avatar']) ?>" class="profile-avatar-img">
             <?php else: ?>
-                <div class="profile-avatar-placeholder"><?= strtoupper(substr($user['full_name'], 0, 2)) ?></div>
+                <div class="profile-avatar-placeholder"><?= strtoupper(substr($user['full_name'] ?? 'U', 0, 2)) ?></div>
             <?php endif; ?>
         </div>
-        <h2><?= e($user['full_name']) ?></h2>
-        <p class="profile-role"><span class="badge badge-primary"><?= ucfirst($user['role']) ?></span></p>
-        <p class="profile-email"><i class="fas fa-envelope"></i> <?= e($user['email']) ?></p>
-        <?php if ($user['phone']): ?><p class="profile-phone"><i class="fas fa-phone"></i> <?= e($user['phone']) ?></p><?php endif; ?>
-        <?php if ($user['bio']): ?><p class="profile-bio"><?= e($user['bio']) ?></p><?php endif; ?>
+        <h2><?= e($user['full_name'] ?? '') ?></h2>
+        <p class="profile-role"><span class="badge badge-primary"><?= ucfirst($user['role'] ?? 'user') ?></span></p>
+        <p class="profile-email"><i class="fas fa-envelope"></i> <?= e($user['email'] ?? '') ?></p>
+        <?php if (!empty($user['phone'])): ?><p class="profile-phone"><i class="fas fa-phone"></i> <?= e($user['phone']) ?></p><?php endif; ?>
+        <?php if (!empty($user['bio'])): ?><p class="profile-bio"><?= e($user['bio']) ?></p><?php endif; ?>
 
         <!-- XP Progress -->
         <div class="xp-section">
             <div class="xp-header">
-                <span class="xp-level">Level <?= $user['level'] ?> - <?= get_level_name($user['level']) ?></span>
-                <span class="xp-points"><?= number_format($user['xp_points']) ?> / <?= number_format($xpForNext) ?> XP</span>
+                <span class="xp-level">Level <?= $user['level'] ?? 1 ?> - <?= get_level_name($user['level'] ?? 1) ?></span>
+                <span class="xp-points"><?= number_format($user['xp_points'] ?? 0) ?> / <?= number_format($xpForNext ?? 100) ?> XP</span>
             </div>
-            <div class="progress-bar"><div class="progress-fill" style="width: <?= $xpProgress ?>%;"></div></div>
+            <div class="progress-bar"><div class="progress-fill" style="width: <?= $xpProgress ?? 0 ?>%;"></div></div>
         </div>
 
         <!-- Badges -->

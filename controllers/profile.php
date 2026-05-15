@@ -7,6 +7,12 @@ $db = Database::getInstance();
 $prefix = $db->getPrefix();
 $userId = Session::userId();
 $user = Session::user();
+
+// If user data not found (reinstall, session stale), redirect to login
+if (!$user) {
+    Router::redirect('login');
+}
+
 $action = $GLOBALS['action'] ?? 'index';
 $param = $GLOBALS['param'] ?? null;
 

@@ -5,6 +5,13 @@
  * Modern mobile app-style layout with bottom navigation
  */
 $currentUser = Session::user();
+
+// If user not found (reinstall, session expired), redirect to login
+if (!$currentUser) {
+    header('Location: ' . BASE_URL . '/login');
+    exit;
+}
+
 $currentRoute = trim($_GET['route'] ?? '', '/');
 $routeParts = explode('/', $currentRoute);
 $activePage = $routeParts[0] ?? 'dashboard';
@@ -123,9 +130,9 @@ $userTheme = Session::get('user_theme', $currentUser['theme'] ?? 'light');
                         <div class="avatar-placeholder lg"><?= strtoupper(substr($currentUser['full_name'], 0, 1)) ?></div>
                     <?php endif; ?>
                     <div class="side-panel-user-info">
-                        <h4><?= e($currentUser['full_name']) ?></h4>
-                        <span class="user-role-badge"><?= ucfirst(e($currentUser['role'])) ?></span>
-                        <span class="user-xp">Level <?= $currentUser['level'] ?> &bull; <?= number_format($currentUser['xp_points']) ?> XP</span>
+                        <h4><?= e($currentUser['full_name'] ?? '') ?></h4>
+                        <span class="user-role-badge"><?= ucfirst(e($currentUser['role'] ?? 'user')) ?></span>
+                        <span class="user-xp">Level <?= $currentUser['level'] ?? 1 ?> &bull; <?= number_format($currentUser['xp_points'] ?? 0) ?> XP</span>
                     </div>
                 </div>
                 <button class="btn-icon" id="sidePanelClose"><i class="fas fa-times"></i></button>
